@@ -8,32 +8,22 @@ import threading
 import time
 
 # IP and port of Tello
-tello1_address = ('192.168.242.144', 8889)
-tello2_address = ('192.168.242.162', 8889)
-tello3_address = ('192.168.242.247', 8889)
-tello4_address = ('192.168.242.162', 8889)
-tello5_address = ('192.168.242.144', 8889)
-
-
-# IP and port of local computer
-local1_address = ('', 9010)
-local2_address = ('', 9011)
-
-# Create a UDP connection that we'll send the command to
-sock1 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock2 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+NumberOfDrones = [0,1,2,3,4]
+tello_address = [('192.168.242.144', 8889), ('192.168.242.162', 8889), ('192.168.242.162', 8889), ('192.168.242.247', 8889),('192.168.242.25', 8889),('192.168.242.24', 8889)]
+local_address = [('', 9010),('', 9011),('', 9012),('', 9013),('', 9014)] # IP and port of local computer
+sock = [socket.socket(socket.AF_INET, socket.SOCK_DGRAM),socket.socket(socket.AF_INET, socket.SOCK_DGRAM),socket.socket(socket.AF_INET, socket.SOCK_DGRAM),socket.socket(socket.AF_INET, socket.SOCK_DGRAM),socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]# Create a UDP connection that we'll send the command to
 
 # Bind to the local address and port
-sock1.bind(local1_address)
-sock2.bind(local2_address)
+for i in NumberOfDrones:
+  sock[i].bind(local_address[i])
 
 # Send the message to Tello and allow for a delay in seconds
 def send(message, delay):
   # Try to send the message otherwise print the exception
   try:
-    sock1.sendto(message.encode(), tello1_address)
-    sock2.sendto(message.encode(), tello2_address)
-    print("Sending message: " + message)
+    for i in NumberOfDrones:
+      sock[i].sendto(message.encode(), tello_address[i])
+      print("Sending message: " + message)
   except Exception as e:
     print("Error sending: " + str(e))
 
@@ -46,17 +36,22 @@ def receive():
   while True:
     # Try to receive the message otherwise print the exception
     try:
-      response1, ip_address = sock1.recvfrom(128)
-      response2, ip_address = sock2.recvfrom(128)
+      response1, ip_address = sock[0].recvfrom(128)
+      response2, ip_address = sock[1].recvfrom(128)
+      response3, ip_address = sock[2].recvfrom(128)
+      response4, ip_address = sock[3].recvfrom(128)
+      response5, ip_address = sock[4].recvfrom(128)
       print("Received message: from Tello EDU #1: " + response1.decode(encoding='utf-8'))
       print("Received message: from Tello EDU #2: " + response2.decode(encoding='utf-8'))
+      print("Received message: from Tello EDU #3: " + response3.decode(encoding='utf-8'))
+      print("Received message: from Tello EDU #4: " + response4.decode(encoding='utf-8'))
+      print("Received message: from Tello EDU #5: " + response5.decode(encoding='utf-8'))
     except Exception as e:
       # If there's an error close the socket and break out of the loop
-      sock1.close()
-      sock2.close()
-      print("Error receiving: " + str(e))
-      break
-
+      for i in NumberOfDrones:
+        sock[i].close()
+        print("Error receiving: " + str(e))
+        break
 # Create and start a listening thread that runs in the background
 # This utilizes our receive functions and will continuously monitor for incoming messages
 receiveThread = threading.Thread(target=receive)
@@ -73,7 +68,8 @@ yaw_angle = 90
 yaw_direction = "cw"
 
 # Put Tello into command mode
-send("command", 3)
+send("command", 5)
+send("battery?", 5)
 
 # Send the takeoff command
 send("takeoff", 8)
@@ -86,11 +82,11 @@ send("takeoff", 8)
 #   send("cw " + str(yaw_angle), 3)
 
 # Land
-send("land", 5)
+send("land", 2)
 
 # Print message
 print("Mission completed successfully!")
 
 # Close the socket
-sock1.close()
-sock2.close()
+for i in NumberOfDrones:
+  sock[i].close()
